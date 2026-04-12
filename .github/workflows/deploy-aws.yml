@@ -56,3 +56,23 @@ jobs:
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.AWS_CLOUDFRONT_ID }} \
             --paths "/*"
+
+      - name: Git tag
+        run: |
+          TAG="deploy-marketing-$(date +%Y.%m.%d)-$(printf '%03d' $GITHUB_RUN_NUMBER)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $TAG
+          git push origin $TAG
+          echo "✅ Tag: $TAG"
+
+      - name: Smoke test
+        run: |
+          sleep 10
+          STATUS=$(curl -o /dev/null -s -w "%{http_code}" --max-time 15 https://www.smconnection.cl)
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Smoke test OK — smconnection.cl responde $STATUS"
+          else
+            echo "🔴 Smoke test FALLÓ — status $STATUS"
+            exit 1
+          fi
